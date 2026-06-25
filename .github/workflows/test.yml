@@ -6,14 +6,13 @@ on:
   pull_request:
   workflow_dispatch:
 
-concurrency:
-  group: test-${{ github.ref }}-${{ matrix.name }}
-  cancel-in-progress: true
-
 jobs:
   test:
     name: Test (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
+    concurrency:
+      group: test-${{ github.ref }}-${{ matrix.name }}
+      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:
