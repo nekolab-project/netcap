@@ -1,0 +1,6 @@
+package = pcap
+headers = pcap/pcap.h
+# /usr/include is used by per-host builds where the system libpcap headers are installed;
+# pcap-headers is a CI-supplied copy used when one host cross-compiles every target for publishing.
+compilerOpts = -I/usr/include -Isrc/nativeInterop/pcap-headers
+linkerOpts = -L/usr/lib -L/usr/lib/x86_64-linux-gnu -lpcap

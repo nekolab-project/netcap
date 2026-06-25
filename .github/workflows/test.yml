@@ -1,0 +1,51 @@
+name: Test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: test-${{ github.ref }}-${{ matrix.name }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Common, jvm and linuxX64 (native libpcap) test suites.
+          - name: linux
+            os: ubuntu-latest
+            tasks: jvmTest linuxX64Test
+          # macosArm64 (native libpcap) and iOS simulator test suites.
+          - name: macos
+            os: macos-latest
+            tasks: macosArm64Test iosSimulatorArm64Test
+
+    # The mingwX64 tests are build-verified in build.yml but not executed here:
+    # running them needs the Npcap runtime, which cannot be installed unattended on a CI runner.
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install libpcap
+        if: matrix.name == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y libpcap-dev
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Test
+        shell: bash
+        run: ./gradlew ${{ matrix.tasks }} --stacktrace

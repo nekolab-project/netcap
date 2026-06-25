@@ -1,0 +1,13 @@
+*.iml
+.kotlin
+.gradle
+build/
+local.properties
+.idea
+.DS_Store
+captures
+references/
+
+# CI-fetched native capture headers (see release.yml / build.yml)
+src/nativeInterop/pcap-headers/
+src/nativeInterop/npcap-sdk/

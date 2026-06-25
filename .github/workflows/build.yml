@@ -1,0 +1,59 @@
+name: Build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}-${{ matrix.name }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux host: jvm, android and the linuxX64 native target (links libpcap).
+          - name: linux
+            os: ubuntu-latest
+            tasks: compileKotlinJvm compileAndroidMain linkDebugTestLinuxX64
+          # macOS host: the macosArm64 and both iOS targets (links libpcap on macosArm64).
+          - name: macos
+            os: macos-latest
+            tasks: compileKotlinIosArm64 compileKotlinIosSimulatorArm64 linkDebugTestMacosArm64
+          # Windows host: the mingwX64 native target (links wpcap from the Npcap SDK).
+          - name: windows
+            os: windows-latest
+            tasks: linkDebugTestMingwX64
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install libpcap
+        if: matrix.name == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y libpcap-dev
+
+      - name: Install Npcap SDK
+        if: matrix.name == 'windows'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://npcap.com/dist/npcap-sdk-1.13.zip -OutFile $env:RUNNER_TEMP\npcap-sdk.zip
+          Expand-Archive -Path $env:RUNNER_TEMP\npcap-sdk.zip -DestinationPath src/nativeInterop/npcap-sdk
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build
+        shell: bash
+        run: ./gradlew ${{ matrix.tasks }} --stacktrace

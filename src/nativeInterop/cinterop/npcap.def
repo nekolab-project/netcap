@@ -1,0 +1,5 @@
+# Windows (Npcap). Vendor the Npcap SDK under src/nativeInterop/npcap-sdk and adjust the paths.
+package = pcap
+headers = pcap/pcap.h
+compilerOpts = -Isrc/nativeInterop/npcap-sdk/Include
+linkerOpts = -Lsrc/nativeInterop/npcap-sdk/Lib/x64 -lwpcap
