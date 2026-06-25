@@ -1,0 +1,13 @@
+name: libpcap headers
+description: Fetches the libpcap API headers the pcap cinterop bindings need into src/nativeInterop/pcap-headers.
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        curl -sSL https://www.tcpdump.org/release/libpcap-1.10.5.tar.gz -o "$RUNNER_TEMP/libpcap.tar.gz"
+        rm -rf "$RUNNER_TEMP/libpcap-src"
+        mkdir -p "$RUNNER_TEMP/libpcap-src" src/nativeInterop/pcap-headers
+        tar -xzf "$RUNNER_TEMP/libpcap.tar.gz" -C "$RUNNER_TEMP/libpcap-src" --strip-components=1
+        cp "$RUNNER_TEMP/libpcap-src/pcap.h" src/nativeInterop/pcap-headers/
+        cp -R "$RUNNER_TEMP/libpcap-src/pcap" src/nativeInterop/pcap-headers/pcap

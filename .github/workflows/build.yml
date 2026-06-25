@@ -33,6 +33,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      # libpcap headers drive the pcap cinterop; the dev package also provides the .so for linking.
+      - name: Fetch libpcap headers
+        if: matrix.name == 'linux' || matrix.name == 'macos'
+        uses: ./.github/actions/libpcap-headers
+
       - name: Install libpcap
         if: matrix.name == 'linux'
         run: sudo apt-get update && sudo apt-get install -y libpcap-dev
@@ -41,7 +46,7 @@ jobs:
         if: matrix.name == 'windows'
         shell: pwsh
         run: |
-          Invoke-WebRequest -Uri https://npcap.com/dist/npcap-sdk-1.13.zip -OutFile $env:RUNNER_TEMP\npcap-sdk.zip
+          Invoke-WebRequest -Uri https://npcap.com/dist/npcap-sdk-1.16.zip -OutFile $env:RUNNER_TEMP\npcap-sdk.zip
           Expand-Archive -Path $env:RUNNER_TEMP\npcap-sdk.zip -DestinationPath src/nativeInterop/npcap-sdk
 
       - name: Set up JDK

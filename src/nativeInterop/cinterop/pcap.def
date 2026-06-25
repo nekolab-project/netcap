@@ -1,6 +1,7 @@
 package = pcap
 headers = pcap/pcap.h
-# /usr/include is used by per-host builds where the system libpcap headers are installed;
-# pcap-headers is a CI-supplied copy used when one host cross-compiles every target for publishing.
-compilerOpts = -I/usr/include -Isrc/nativeInterop/pcap-headers
+# Only the fetched libpcap API headers are used; system headers (sys/types.h, ...) come from the
+# Kotlin/Native sysroot. Pointing at the host /usr/include drags in glibc headers that break on
+# multiarch distros and is absent on macOS, so it is deliberately not used.
+compilerOpts = -Isrc/nativeInterop/pcap-headers
 linkerOpts = -L/usr/lib -L/usr/lib/x86_64-linux-gnu -lpcap
