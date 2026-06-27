@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "dev.jokelbaf"
-version = "0.1.0"
+version = "0.1.1"
 
 kotlin {
     jvmToolchain(25)
@@ -27,7 +27,7 @@ kotlin {
         }
     }
 
-    // Native desktop capture targets. cinterop is per-target (no commonization — no single
+    // Native desktop capture targets. cinterop is per-target (no commonization - no single
     // host has all three SDKs); the shared `actual` lives in src/nativePcap and is compiled
     // once per target against that target's libpcap/npcap binding.
     linuxX64 { pcapCinterop("pcap") }
