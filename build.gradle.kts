@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "dev.jokelbaf"
-version = "0.1.1"
+version = "0.1.2"
 
 kotlin {
     jvmToolchain(25)
@@ -45,6 +45,11 @@ kotlin {
         }
         for (name in listOf("linuxX64Test", "macosArm64Test", "mingwX64Test")) {
             getByName(name).kotlin.srcDir("src/nativePcapTest/kotlin")
+        }
+
+        val iosMain = create("iosMain").apply { dependsOn(commonMain.get()) }
+        for (name in listOf("iosArm64Main", "iosSimulatorArm64Main")) {
+            getByName(name).dependsOn(iosMain)
         }
         commonMain.dependencies {
             // api, not implementation: Flow/StateFlow appear in the public API signatures.
