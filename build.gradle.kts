@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "dev.jokelbaf"
-version = "0.1.2"
+version = "0.1.3"
 
 kotlin {
     jvmToolchain(25)
@@ -27,9 +27,6 @@ kotlin {
         }
     }
 
-    // Native desktop capture targets. cinterop is per-target (no commonization - no single
-    // host has all three SDKs); the shared `actual` lives in src/nativePcap and is compiled
-    // once per target against that target's libpcap/npcap binding.
     linuxX64 { pcapCinterop("pcap") }
     macosArm64 { pcapCinterop("pcap") }
     mingwX64 { pcapCinterop("npcap") }
@@ -52,7 +49,6 @@ kotlin {
             getByName(name).dependsOn(iosMain)
         }
         commonMain.dependencies {
-            // api, not implementation: Flow/StateFlow appear in the public API signatures.
             api(libs.kotlinx.coroutinesCore)
         }
         commonTest.dependencies {
@@ -61,7 +57,6 @@ kotlin {
     }
 }
 
-/** Adds the libpcap/npcap cinterop (def file [name].def) to a native target's main compilation. */
 fun org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget.pcapCinterop(name: String) {
     compilations.getByName("main").cinterops.create("pcap") {
         definitionFile.set(project.file("src/nativeInterop/cinterop/$name.def"))
