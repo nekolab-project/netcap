@@ -8,15 +8,20 @@ import dev.jokelbaf.netcap.core.net.TcpChannelListener
 import dev.jokelbaf.netcap.core.net.UdpChannel
 import dev.jokelbaf.netcap.core.net.UdpChannelListener
 import dev.jokelbaf.netcap.core.parseIpv6Address
+import kotlinx.cinterop.ByteVar
+import kotlinx.cinterop.CPointerVar
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.UIntVar
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.convert
+import kotlinx.cinterop.get
 import kotlinx.cinterop.memScoped
+import kotlinx.cinterop.pointed
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.sizeOf
+import kotlinx.cinterop.toKString
 import kotlinx.cinterop.usePinned
 import kotlinx.cinterop.value
 import kotlinx.coroutines.CoroutineScope
@@ -25,6 +30,9 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.newFixedThreadPoolContext
 import kotlin.concurrent.Volatile
+import platform.darwin.freeifaddrs
+import platform.darwin.getifaddrs
+import platform.darwin.ifaddrs
 import platform.posix.AF_INET
 import platform.posix.AF_INET6
 import platform.posix.IPPROTO_IP
@@ -33,6 +41,7 @@ import platform.posix.SOCK_DGRAM
 import platform.posix.SOCK_STREAM
 import platform.posix.close
 import platform.posix.connect
+import platform.posix.if_nametoindex
 import platform.posix.memcpy
 import platform.posix.recv
 import platform.posix.send
@@ -49,14 +58,15 @@ import platform.posix.socket
  * Inside a `NEPacketTunnelProvider`, with a default route claimed by the tunnel,
  * the provider's own sockets would route back into the tunnel and loop. There is
  * no `VpnService.protect()` equivalent, so each upstream socket is bound to the
- * physical interface via `IP_BOUND_IF`/`IPV6_BOUND_IF` ([boundInterfaceIndex],
- * resolved in Swift) to force its traffic onto Wi-Fi/cellular instead.
+ * physical interface via `IP_BOUND_IF`/`IPV6_BOUND_IF`. The interface is resolved
+ * here in netcap (see [resolvePhysicalInterfaceIndex]) — the iOS analogue of the
+ * Android factory calling `VpnService.protect()` — so the consuming app doesn't
+ * have to compute it.
  *
  * Destination addresses always arrive as numeric IPv4 or IPv6 (from parsed
  * headers), so no DNS resolution is required here.
  */
 internal class IosNetworkChannelFactory(
-    private val boundInterfaceIndex: UInt,
     private val log: (String) -> Unit,
 ) : NetworkChannelFactory {
 
@@ -71,12 +81,12 @@ internal class IosNetworkChannelFactory(
 
     override fun openTcp(remoteAddress: String, remotePort: Int, listener: TcpChannelListener): TcpChannel {
         log("open TCP ${family(remoteAddress)} $remoteAddress:$remotePort")
-        return IosTcpChannel(readScope, writeScope, remoteAddress, remotePort, listener, boundInterfaceIndex, log)
+        return IosTcpChannel(readScope, writeScope, remoteAddress, remotePort, listener, log)
     }
 
     override fun openUdp(remoteAddress: String, remotePort: Int, listener: UdpChannelListener): UdpChannel {
         log("open UDP ${family(remoteAddress)} $remoteAddress:$remotePort")
-        return IosUdpChannel(readScope, writeScope, remoteAddress, remotePort, listener, boundInterfaceIndex, log)
+        return IosUdpChannel(readScope, writeScope, remoteAddress, remotePort, listener, log)
     }
 
     private fun family(host: String): String = if (host.contains(':')) "v6" else "v4"
@@ -112,12 +122,72 @@ private fun ipv4ToNetworkOrder(host: String): UInt {
 }
 
 @OptIn(ExperimentalForeignApi::class)
-private fun connectSocket(type: Int, host: String, port: Int, boundInterfaceIndex: UInt): Int =
-    if (host.contains(':')) {
+private fun connectSocket(type: Int, host: String, port: Int): Int {
+    val boundInterfaceIndex = resolvePhysicalInterfaceIndex()
+    return if (host.contains(':')) {
         connectSocket6(type, host, port, boundInterfaceIndex)
     } else {
         connectSocket4(type, host, port, boundInterfaceIndex)
     }
+}
+
+/** Interface flags from `<net/if.h>` (not surfaced by Darwin's posix interop). */
+private const val IFF_UP = 0x1
+private const val IFF_LOOPBACK = 0x8
+
+/**
+ * The physical egress interface index upstream sockets bind to (via `IP_BOUND_IF`/`IPV6_BOUND_IF`),
+ * so they leave on Wi-Fi/cellular instead of looping back into our own tunnel. iOS has no
+ * `VpnService.protect()`, so this is netcap's equivalent — resolved internally, not by the app.
+ *
+ * Prefers Wi-Fi (`en*`), then cellular (`pdp_ip*`), then any other routable, non-loopback,
+ * non-tunnel interface. Only interfaces carrying a *global* (non-link-local) address qualify: iOS
+ * keeps `en0` up with just an `fe80::` link-local while on cellular, and binding to it would fail
+ * every connection. Returns 0u if none — then [bindToInterface] is a no-op.
+ */
+@OptIn(ExperimentalForeignApi::class)
+internal fun resolvePhysicalInterfaceIndex(): UInt = memScoped {
+    val list = alloc<CPointerVar<ifaddrs>>()
+    if (getifaddrs(list.ptr) != 0) return@memScoped 0u
+    try {
+        var chosen = 0u
+        var fallback = 0u
+        var node = list.value
+        while (node != null) {
+            val ifa = node.pointed
+            node = ifa.ifa_next
+            val addr = ifa.ifa_addr ?: continue
+            val flags = ifa.ifa_flags.toInt()
+            if (flags and IFF_UP == 0 || flags and IFF_LOOPBACK != 0) continue
+
+            val raw = addr.reinterpret<ByteVar>()
+            val family = raw[1].toInt() and 0xFF
+            if (family != AF_INET && family != AF_INET6) continue
+            val global = if (family == AF_INET) {
+                // sin_addr at offset 4; IPv4 link-local is 169.254/16.
+                !((raw[4].toInt() and 0xFF) == 169 && (raw[5].toInt() and 0xFF) == 254)
+            } else {
+                // sin6_addr at offset 8; IPv6 link-local is fe80::/10.
+                val b0 = raw[8].toInt() and 0xFF
+                val b1 = raw[9].toInt() and 0xFF
+                !(b0 == 0xFE && (b1 and 0xC0) == 0x80)
+            }
+            if (!global) continue
+
+            val name = ifa.ifa_name?.toKString() ?: continue
+            if (name.startsWith("utun") || name.startsWith("ipsec") || name.startsWith("lo")) continue
+            val index = if_nametoindex(name)
+            when {
+                name.startsWith("en") -> return@memScoped index // Wi-Fi: best choice, stop here.
+                name.startsWith("pdp_ip") -> if (chosen == 0u) chosen = index
+                else -> if (fallback == 0u) fallback = index
+            }
+        }
+        if (chosen != 0u) chosen else fallback
+    } finally {
+        freeifaddrs(list.value)
+    }
+}
 
 /** Binds a socket to the physical interface so its traffic doesn't loop back into our tunnel. */
 @OptIn(ExperimentalForeignApi::class)
@@ -173,7 +243,6 @@ private class IosTcpChannel(
     private val host: String,
     private val port: Int,
     private val listener: TcpChannelListener,
-    private val boundInterfaceIndex: UInt,
     private val log: (String) -> Unit,
 ) : TcpChannel {
 
@@ -188,7 +257,7 @@ private class IosTcpChannel(
     }
 
     private fun run() {
-        fd = connectSocket(SOCK_STREAM, host, port, boundInterfaceIndex)
+        fd = connectSocket(SOCK_STREAM, host, port)
         if (fd < 0) {
             log("TCP connect failed $host:$port")
             if (!closed) listener.onError(IllegalStateException("TCP connect failed to $host:$port"))
@@ -246,7 +315,6 @@ private class IosUdpChannel(
     private val host: String,
     private val port: Int,
     private val listener: UdpChannelListener,
-    private val boundInterfaceIndex: UInt,
     private val log: (String) -> Unit,
 ) : UdpChannel {
 
@@ -261,7 +329,7 @@ private class IosUdpChannel(
     }
 
     private fun run() {
-        fd = connectSocket(SOCK_DGRAM, host, port, boundInterfaceIndex)
+        fd = connectSocket(SOCK_DGRAM, host, port)
         if (fd < 0) {
             log("UDP connect failed $host:$port")
             if (!closed) listener.onError(IllegalStateException("UDP connect failed to $host:$port"))

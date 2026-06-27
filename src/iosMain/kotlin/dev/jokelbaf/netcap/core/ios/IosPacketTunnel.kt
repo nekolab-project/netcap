@@ -24,13 +24,10 @@ import platform.Foundation.NSData
  * on a timer so the app process can display them.
  *
  * @param appGroup the App Group id shared by the app and the extension.
- * @param boundInterfaceIndex index of the physical interface upstream sockets
- *   must bind to (so they don't loop back into the tunnel); 0 disables binding.
  * @param writeToTun hands an outbound IP packet back to the system tunnel.
  */
 class IosPacketTunnel(
     appGroup: String,
-    private val boundInterfaceIndex: Int,
     private val writeToTun: (NSData) -> Unit,
 ) {
     private val store = PacketStore()
@@ -40,15 +37,14 @@ class IosPacketTunnel(
     private var pumpJob: Job? = null
 
     private val engine = SnifferEngine(
-        // Socket-layer logs flush immediately so the last action before any teardown is captured.
-        channelFactory = IosNetworkChannelFactory(boundInterfaceIndex.toUInt()) { line -> diagnostic(line) },
+        channelFactory = IosNetworkChannelFactory { line -> diagnostic(line) },
         tunWriter = { packet -> writeToTun(packet.toNSData()) },
         packetSink = store,
         logger = { line -> logBuffer.log(line) },
     )
 
     fun start() {
-        logBuffer.log("engine starting; boundInterfaceIndex=$boundInterfaceIndex")
+        logBuffer.log("engine starting")
         engine.start()
         publish(CaptureState.RUNNING)
         pumpJob = scope.launch {
