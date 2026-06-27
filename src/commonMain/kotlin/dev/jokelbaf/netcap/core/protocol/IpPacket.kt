@@ -14,7 +14,7 @@ sealed interface IpPacket : Payload {
     /** Layer-4 protocol number (the final next-header after any IPv6 extensions). */
     val protocolNumber: Int
 
-    /** Raw address bytes — 4 for IPv4, 16 for IPv6 — as used to build reply packets. */
+    /** Raw address bytes - 4 for IPv4, 16 for IPv6 - as used to build reply packets. */
     val sourceBytes: ByteArray
     val destinationBytes: ByteArray
     val sourceAddress: String

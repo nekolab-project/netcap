@@ -16,7 +16,7 @@ enum class LinkType {
 
     /**
      * The `LINKTYPE_*` value written to a pcap savefile's header. These differ from the live
-     * `pcap_datalink` (DLT) values for some types — notably raw IP, which is `LINKTYPE_RAW` (101)
+     * `pcap_datalink` (DLT) values for some types - notably raw IP, which is `LINKTYPE_RAW` (101)
      * in a savefile but DLT 12/14 live. [UNKNOWN] has no representation and must not be written.
      */
     val fileLinkType: Int

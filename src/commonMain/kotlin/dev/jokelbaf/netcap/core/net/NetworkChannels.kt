@@ -2,7 +2,7 @@ package dev.jokelbaf.netcap.core.net
 
 /**
  * The network-facing side of the userspace stack. Each platform provides an
- * implementation that opens real sockets to the internet — on Android these are
+ * implementation that opens real sockets to the internet - on Android these are
  * routed around the VPN via `VpnService.protect()`; on iOS the extension's own
  * sockets already egress on the physical interface.
  *

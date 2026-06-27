@@ -4,7 +4,7 @@ import dev.jokelbaf.netcap.core.readUShort
 
 /**
  * A read-only Ethernet ([dev.jokelbaf.netcap.core.protocol.Payload]) view at [frameOffset]
- * in [buffer]. [payload] decodes the upper layer lazily — IPv4/IPv6 (skipping any 802.1Q/ad
+ * in [buffer]. [payload] decodes the upper layer lazily - IPv4/IPv6 (skipping any 802.1Q/ad
  * VLAN tags), or a [RawPayload] for protocols we don't decode yet (e.g. ARP).
  */
 class EthernetFrame internal constructor(
@@ -16,7 +16,7 @@ class EthernetFrame internal constructor(
     val destinationMac: MacAddress get() = MacAddress(buffer, frameOffset)
     val sourceMac: MacAddress get() = MacAddress(buffer, frameOffset + 6)
 
-    /** The EtherType field (may be a VLAN TPID — see [payload] which skips tags). */
+    /** The EtherType field (may be a VLAN TPID - see [payload] which skips tags). */
     val etherType: Int get() = buffer.readUShort(frameOffset + 12)
 
     val payload: Payload by lazy { decodeUpper() }
@@ -36,7 +36,7 @@ class EthernetFrame internal constructor(
         val ipStart = typeOffset + 2
         return when (type) {
             IPV4, IPV6 -> IpPacket.parse(buffer, ipStart, end - ipStart) ?: RawPayload(buffer, ipStart, end - ipStart)
-            else -> RawPayload(buffer, ipStart, end - ipStart) // ARP, etc. — not decoded yet
+            else -> RawPayload(buffer, ipStart, end - ipStart) // ARP, etc. - not decoded yet
         }
     }
 

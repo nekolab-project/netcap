@@ -3,7 +3,7 @@ package dev.jokelbaf.netcap.core.protocol
 import dev.jokelbaf.netcap.core.PacketDirection
 import kotlin.time.Instant
 
-/** The single owned byte buffer of a captured packet — the only place bytes are stored. */
+/** The single owned byte buffer of a captured packet - the only place bytes are stored. */
 interface Frame {
     val bytes: ByteArray
 }

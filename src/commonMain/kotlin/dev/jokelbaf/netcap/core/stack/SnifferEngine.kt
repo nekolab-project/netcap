@@ -191,7 +191,7 @@ class SnifferEngine(
 
     /**
      * Captures one raw IP packet. The bytes are copied into an owned frame and wrapped in a
-     * lazily-decoded [dev.jokelbaf.netcap.core.protocol.Packet]; no parsing happens here — the
+     * lazily-decoded [dev.jokelbaf.netcap.core.protocol.Packet]; no parsing happens here - the
      * NAT already parsed for forwarding, and the public packet decodes on demand when observed.
      */
     private fun capture(buffer: ByteArray, length: Int, direction: PacketDirection) {

@@ -2,7 +2,7 @@ package dev.jokelbaf.netcap.core.protocol
 
 /**
  * One decoded protocol layer of a captured packet (Ethernet, IPv4/IPv6, TCP/UDP, …),
- * forming a lazily-decoded chain — each layer exposes the next via its own `payload`.
+ * forming a lazily-decoded chain - each layer exposes the next via its own `payload`.
  *
  * Layers are **purely structural views**: a layer carries no bytes of its own, only a
  * position over the packet's single owned [Frame] buffer, and computes header fields on

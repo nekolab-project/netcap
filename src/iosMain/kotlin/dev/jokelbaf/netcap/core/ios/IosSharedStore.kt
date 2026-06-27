@@ -23,7 +23,7 @@ import platform.Foundation.writeToURL
  *
  * Each packet is serialized as its (header-capped) raw frame bytes plus timestamp and
  * direction; the app reconstructs a lazily-decoded [Packet] from them. The frame is capped
- * to keep the snapshot small — enough for header inspection, not full payloads.
+ * to keep the snapshot small - enough for header inspection, not full payloads.
  *
  * The shared App Group identifier must match the one configured on both targets in Xcode.
  */
@@ -97,7 +97,7 @@ internal class IosSharedStore(private val appGroup: String) {
         const val SNAPSHOT_FILE = "capture-snapshot.json"
         const val MAX_PACKETS = 500
         const val MAX_LOGS = 200
-        const val FRAME_CAP = 96 // bytes — enough for IPv4/IPv6 + TCP/UDP headers
+        const val FRAME_CAP = 96 // bytes - enough for IPv4/IPv6 + TCP/UDP headers
         val EMPTY = Snapshot(CaptureState.IDLE, 0L, emptyList(), emptyList())
     }
 }

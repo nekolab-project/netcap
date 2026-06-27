@@ -63,7 +63,7 @@ internal class IosNetworkChannelFactory(
     // Reads and writes get SEPARATE pools. Each connection's blocking recv() holds
     // a read thread for the connection's lifetime; if reads and writes shared a
     // pool, enough concurrent reads would leave no thread for the (brief, otherwise
-    // suspended) writers to send() — so requests never reach the server and it
+    // suspended) writers to send() - so requests never reach the server and it
     // idle-closes. Keeping writes on their own pool makes them immune to that.
     // Blocked threads are cheap (lazily-paged stacks), so this fits the NE budget.
     private val readScope = CoroutineScope(newFixedThreadPoolContext(READ_THREADS, "sniffer-ios-read"))

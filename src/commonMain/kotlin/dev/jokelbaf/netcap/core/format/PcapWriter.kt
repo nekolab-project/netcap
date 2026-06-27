@@ -6,7 +6,7 @@ import dev.jokelbaf.netcap.core.writeUInt
 import dev.jokelbaf.netcap.core.writeUShort
 
 /**
- * Encodes [Packet]s into the classic libpcap savefile format. It produces bytes only — the caller
+ * Encodes [Packet]s into the classic libpcap savefile format. It produces bytes only - the caller
  * writes them to a file. Emit [fileHeader] once, then a [record] per packet (or use [write] for a
  * complete in-memory file).
  *

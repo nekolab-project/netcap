@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.update
 
 /**
  * A small, observable ring buffer of diagnostic log lines for display in the UI.
- * Useful where there's no console — notably the iOS Network Extension, whose
+ * Useful where there's no console - notably the iOS Network Extension, whose
  * lines are relayed to the app via the shared snapshot.
  */
 class LogBuffer(private val capacity: Int = DEFAULT_CAPACITY) {

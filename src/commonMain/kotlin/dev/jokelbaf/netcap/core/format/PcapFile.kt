@@ -3,7 +3,7 @@ package dev.jokelbaf.netcap.core.format
 import dev.jokelbaf.netcap.core.protocol.LinkType
 
 /**
- * Read/write support for the classic libpcap savefile format (`.pcap`) — the format `tcpdump -w`
+ * Read/write support for the classic libpcap savefile format (`.pcap`) - the format `tcpdump -w`
  * produces and Wireshark reads natively.
  *
  * The library only ever encodes and decodes bytes; it never opens, reads or writes files. Feed

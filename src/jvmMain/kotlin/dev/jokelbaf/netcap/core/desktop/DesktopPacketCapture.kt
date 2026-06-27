@@ -146,7 +146,7 @@ internal class DesktopPacketCapture(
         return Instant.fromEpochSeconds(seconds, micros * 1_000)
     }
 
-    /** Direction from the IP source address only (cheap — avoids decoding the whole packet). */
+    /** Direction from the IP source address only (cheap - avoids decoding the whole packet). */
     private fun inferDirection(frame: ByteArray, datalink: Int, localAddresses: Set<List<Byte>>): PacketDirection {
         val offset = LinkLayer.ipOffset(datalink, frame)
         if (offset < 0 || offset >= frame.size) return PacketDirection.UNKNOWN

@@ -17,7 +17,7 @@ internal val isMac: Boolean = osName.contains("mac") || osName.contains("darwin"
  * npcap's `wpcap` (Windows). Only the handful of functions the sniffer needs are
  * bound; the surface is small and stable, so no code generation is involved.
  *
- * The native library is resolved at runtime — there is nothing to vendor or link
+ * The native library is resolved at runtime - there is nothing to vendor or link
  * at build time. All entry points are thin: callers pass [MemorySegment]s they own
  * and receive Kotlin types back.
  */

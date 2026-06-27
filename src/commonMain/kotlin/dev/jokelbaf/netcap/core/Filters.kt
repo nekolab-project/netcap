@@ -8,7 +8,7 @@ import dev.jokelbaf.netcap.core.protocol.transport
 
 /**
  * Evaluates a [CaptureFilter] against an already-decoded [Packet] in software. This is how the
- * mobile backends honour a filter — they can't push it into the kernel like desktop's BPF. A raw
+ * mobile backends honour a filter - they can't push it into the kernel like desktop's BPF. A raw
  * [CaptureFilter.Bpf] can't be matched this way (it's desktop-only), so it always passes here.
  */
 internal fun Packet.matches(filter: CaptureFilter?): Boolean = when (filter) {
